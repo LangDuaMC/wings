@@ -73,7 +73,11 @@ type Configuration struct {
 	EnvVars environment.Variables `json:"environment"`
 
 	// Labels is a map of container labels that should be applied to the running server process.
-	Labels map[string]string `json:"labels"`
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Network aliases for the container's bridge network. These allow other containers
+	// to reach this server by the alias hostname on the same Docker network.
+	Aliases []string `json:"aliases,omitempty"`
 
 	Allocations           environment.Allocations `json:"allocations"`
 	Build                 environment.Limits      `json:"build"`

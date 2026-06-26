@@ -270,20 +270,30 @@ func (e *Environment) Create() error {
 		UsernsMode:  container.UsernsMode(cfg.Docker.UsernsMode),
 	}
 
-	var netConf *network.NetworkingConfig = nil //In case when no networking config is needed set nil
 	var serverNetConfig = config.Get().Docker.Network
-	if "macvlan" == serverNetConfig.Driver { //Generate networking config for macvlan driver
-		var defaultMapping = e.Config().Allocations().DefaultMapping
-		e.log().Debug("Set macvlan " + serverNetConfig.Name + " IP to " + defaultMapping.Ip)
+	aliases := e.Configuration.Aliases()
+
+	// Only allocate networking config when needed: macvlan requires IP assignment,
+	// and aliases require endpoint settings for DNS resolution.
+	var netConf *network.NetworkingConfig = nil
+	if len(aliases) > 0 || "macvlan" == serverNetConfig.Driver {
+		endpoint := &network.EndpointSettings{
+			Aliases: aliases,
+		}
+
+		if "macvlan" == serverNetConfig.Driver {
+			var defaultMapping = e.Config().Allocations().DefaultMapping
+			e.log().Debug("Set macvlan " + serverNetConfig.Name + " IP to " + defaultMapping.Ip)
+			endpoint.IPAMConfig = &network.EndpointIPAMConfig{
+				IPv4Address: defaultMapping.Ip,
+			}
+			endpoint.IPAddress = defaultMapping.Ip
+			endpoint.Gateway = serverNetConfig.Interfaces.V4.Gateway
+		}
+
 		netConf = &network.NetworkingConfig{
 			EndpointsConfig: map[string]*network.EndpointSettings{
-				serverNetConfig.Name: { //Get network name from wings config
-					IPAMConfig: &network.EndpointIPAMConfig{
-						IPv4Address: defaultMapping.Ip,
-					},
-					IPAddress: defaultMapping.Ip, //Use default mapping ip address (wings support only one network per server)
-					Gateway:   serverNetConfig.Interfaces.V4.Gateway,
-				},
+				serverNetConfig.Name: endpoint,
 			},
 		}
 	}

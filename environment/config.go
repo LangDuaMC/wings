@@ -9,6 +9,7 @@ type Settings struct {
 	Allocations Allocations
 	Limits      Limits
 	Labels      map[string]string
+	Aliases     []string
 }
 
 // Defines the actual configuration struct for the environment with all of the settings
@@ -75,6 +76,14 @@ func (c *Configuration) Labels() map[string]string {
 	defer c.mu.RUnlock()
 
 	return c.settings.Labels
+}
+
+// Aliases returns the network aliases for this container.
+func (c *Configuration) Aliases() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.settings.Aliases
 }
 
 // Returns the environment variables associated with this instance.
